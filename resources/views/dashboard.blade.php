@@ -7,6 +7,8 @@
     <title>Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -81,21 +83,82 @@
                 }
             });
 
+            $('#form-tambah-pasien').submit(function (e) {
+                e.preventDefault();
+
+                $.ajax({
+                    url: '{{ route("pasien.store") }}',
+                    type: 'POST',
+                    data: {
+                        name: $('input[name="name"]').val(),
+                        address: $('input[name="address"]').val(),
+                        no_hp: $('input[name="no_hp"]').val(),
+                        hospital_id: $('select[name="hospital_id"]').val(),
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.success,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalTambahPasien').modal('hide');
+                        $('#form-tambah-pasien')[0].reset();
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        let errors = xhr.responseJSON.errors;
+                        let message = 'Gagal menyimpan data.';
+                        if (errors) {
+                            message = Object.values(errors).map(e => e.join(', ')).join('\n');
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: message
+                        });
+                    }
+                });
+            });
+
             $('#pasien-table').on('click', '.delete-btn', function () {
                 let id = $(this).data('id');
-                if (confirm('Yakin ingin menghapus data ini?')) {
-                    $.ajax({
+                Swal.fire({
+                    title: 'Yakin ingin menghapus?',
+                    text: 'Data akan dihapus permanen!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                    }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
                         url: '/pasien/' + id,
                         type: 'DELETE',
                         success: function (response) {
-                            alert(response.success);
+                            Swal.fire({
+                            icon: 'success',
+                            title: 'Terhapus!',
+                            text: response.success,
+                            timer: 2000,
+                            showConfirmButton: false
+                            });
                             table.ajax.reload(null, false);
                         },
                         error: function () {
-                            alert('Gagal menghapus data.');
+                            Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: 'Gagal menghapus data.',
+                            });
                         }
-                    });
-                }
+                        });
+                    }
+                });
             });
 
             $('#pasien-table').on('click', '.edit-btn', function () {
@@ -121,6 +184,13 @@
                         hospital_id: $('#edit-hospital_id').val()
                     },
                     success: function (response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.success,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                         $('#modalEditPasien').modal('hide');
                         table.ajax.reload(null, false);
                     },
@@ -135,7 +205,7 @@
     <!-- Modal Tambah Pasien -->
     <div class="modal fade" id="modalTambahPasien" tabindex="-1" aria-labelledby="modalTambahPasienLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('pasien.store') }}">
+            <form id="form-tambah-pasien">
             @csrf
             <div class="modal-content">
                 <div class="modal-header">
